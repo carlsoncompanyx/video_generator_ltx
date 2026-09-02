@@ -1,0 +1,14 @@
+{
+  "input": {
+    "mode": "t2v",
+    "prompt": "A small paper boat floats down a sunlit stream, gentle ripples and natural synchronized water sounds, cinematic live-action footage.",
+    "negative_prompt": "distorted, flicker, warped geometry, sudden cuts",
+    "seed": 42,
+    "width": 480,
+    "height": 512,
+    "duration_seconds": 2,
+    "fps": 24,
+    "generate_audio": true,
+    "enhance_prompt": true
+  }
+}

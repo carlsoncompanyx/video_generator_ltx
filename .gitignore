@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+artifacts/
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.wav
+*.mp3
+

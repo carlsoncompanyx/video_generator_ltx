@@ -1,0 +1,27 @@
+{
+  "method": "POST",
+  "url": "https://api.runpod.ai/v2/{{ $env.RUNPOD_LTX25_ENDPOINT_ID }}/run",
+  "sendHeaders": true,
+  "headerParameters": {
+    "parameters": [
+      {"name": "Authorization", "value": "Bearer {{ $env.RUNPOD_API_KEY }}"},
+      {"name": "Content-Type", "value": "application/json"}
+    ]
+  },
+  "sendBody": true,
+  "jsonBody": {
+    "input": {
+      "mode": "i2v",
+      "prompt": "A person walks naturally through the scene while preserving identity, clothing, props, and lighting.",
+      "seed": 42,
+      "width": 480,
+      "height": 512,
+      "duration_seconds": 2,
+      "fps": 24,
+      "generate_audio": true,
+      "enhance_prompt": true,
+      "image_url": "https://your-approved-asset-host.example/reference.png"
+    }
+  },
+  "notes": "Use the returned id with GET https://api.runpod.ai/v2/{{endpoint_id}}/status/{{id}} until status is COMPLETED; read output.output.url or output.output.data. Keep credentials in n8n credentials/environment, never in the workflow JSON."
+}

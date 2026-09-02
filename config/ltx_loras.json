@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "adapters": {
+    "pixel_upscale_x2": {
+      "filename": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors",
+      "model_family": "LTX-2.5",
+      "adapter_type": "ic_lora",
+      "compatible_ltx_versions": ["2.5"],
+      "default_strength": 1.0,
+      "minimum_strength": 0.0,
+      "maximum_strength": 2.0,
+      "workflow_compatibility": ["pixel_upscale"],
+      "required_control_input": "video_url or video_base64",
+      "source": "Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler",
+      "enabled": false,
+      "validation": "registered_not_yet_gpu_validated",
+      "notes": "Separate from the native latent spatial upscaler. No current official API graph is enabled until the Pixel workflow is validated end to end."
+    },
+    "union_control": {
+      "filename": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+      "model_family": "LTX-2.5 control workflow",
+      "adapter_type": "ic_lora",
+      "compatible_ltx_versions": ["2.5"],
+      "default_strength": 1.0,
+      "minimum_strength": 1.0,
+      "maximum_strength": 1.0,
+      "workflow_compatibility": ["union_control"],
+      "required_control_input": "video_url or video_base64",
+      "supported_control_types": ["depth"],
+      "model_profile": "ltx25_bf16_control",
+      "source": "Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control",
+      "source_workflow_commit": "ac4d99839020b983e956a8ab67ec38aec1b6e65a",
+      "enabled": true,
+      "validation": "official_2.5_workflow_static_only_pending_gpu_validation",
+      "notes": "The 2.3 filename is intentionally limited to the official current LTX-2.5 Union Control workflow. The current API exposes the official depth branch only."
+    },
+    "motion_track": {
+      "filename": "ltx-2.3-22b-ic-lora-motion-track-control-ref0.5.safetensors",
+      "model_family": "LTX-2.5 control workflow",
+      "adapter_type": "ic_lora",
+      "compatible_ltx_versions": ["2.5"],
+      "default_strength": 1.0,
+      "minimum_strength": 0.0,
+      "maximum_strength": 2.0,
+      "workflow_compatibility": ["motion_track"],
+      "required_control_input": "image_url or image_base64 plus tracks",
+      "supported_control_types": ["sparse_tracks"],
+      "model_profile": "ltx25_bf16_control",
+      "source": "Lightricks/LTX-2.3-22b-IC-LoRA-Motion-Track-Control",
+      "source_workflow_commit": "ac4d99839020b983e956a8ab67ec38aec1b6e65a",
+      "enabled": true,
+      "validation": "official_2.5_workflow_static_only_pending_gpu_validation",
+      "notes": "The 2.3 filename is intentionally limited to the official current LTX-2.5 Motion Track workflow. Tracks use normalized output coordinates."
+    }
+  },
+  "not_declared_compatible": ["LTX-2.3 Ingredients IC-LoRA", "arbitrary LTX-2.3 ID-LoRAs", "community character or style LoRAs"]
+}

@@ -1,0 +1,408 @@
+{
+  "nodes": {
+    "sg_5014_4990": [
+      {
+        "id": "sg_5014_4990",
+        "class_type": "ResizeImageMaskNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5019": [
+      {
+        "id": "sg_5014_5019",
+        "class_type": "ComfyNotNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_2612": [
+      {
+        "id": "sg_5014_2612",
+        "class_type": "CLIPTextEncode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5506": [
+      {
+        "id": "sg_5014_5506",
+        "class_type": "PrimitiveBoolean",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_9004": [
+      {
+        "id": "sg_5014_9004",
+        "class_type": "TextGenerateLTX2Prompt",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5546": [
+      {
+        "id": "sg_5014_5546",
+        "class_type": "TextGenerateLTX2Prompt",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5555": [
+      {
+        "id": "sg_5014_5555",
+        "class_type": "ComfySwitchNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_2483": [
+      {
+        "id": "sg_5014_2483",
+        "class_type": "CLIPTextEncode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5557": [
+      {
+        "id": "sg_5014_5557",
+        "class_type": "StringContains",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_1241": [
+      {
+        "id": "sg_5014_1241",
+        "class_type": "LTXVConditioning",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5560": [
+      {
+        "id": "sg_5014_5560",
+        "class_type": "ComfySwitchNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5558": [
+      {
+        "id": "sg_5014_5558",
+        "class_type": "ComfySwitchNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5556": [
+      {
+        "id": "sg_5014_5556",
+        "class_type": "ComfySwitchNode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5504": [
+      {
+        "id": "sg_5014_5504",
+        "class_type": "GemmaAPITextEncode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_5014_5505": [
+      {
+        "id": "sg_5014_5505",
+        "class_type": "GemmaAPITextEncode",
+        "prefix": "sg_5014_"
+      }
+    ],
+    "sg_9002_4528": [
+      {
+        "id": "sg_9002_4528",
+        "class_type": "LTXVConcatAVLatent",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_3059": [
+      {
+        "id": "sg_9002_3059",
+        "class_type": "EmptyLTXVLatentVideo",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_5012": [
+      {
+        "id": "sg_9002_5012",
+        "class_type": "LTXAddVideoICLoRAGuide",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_3159": [
+      {
+        "id": "sg_9002_3159",
+        "class_type": "LTXVImgToVideoInplace",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_9005": [
+      {
+        "id": "sg_9002_9005",
+        "class_type": "LTXVConditioning",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_5066": [
+      {
+        "id": "sg_9002_5066",
+        "class_type": "LTXFloatToInt",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_9002_3980": [
+      {
+        "id": "sg_9002_3980",
+        "class_type": "LTXVEmptyLatentAudio",
+        "prefix": "sg_9002_"
+      }
+    ],
+    "sg_5548_5061": [
+      {
+        "id": "sg_5548_5061",
+        "class_type": "VideoDepthAnythingProcess",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5028": [
+      {
+        "id": "sg_5548_5028",
+        "class_type": "ResizeImageMaskNode",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5029": [
+      {
+        "id": "sg_5548_5029",
+        "class_type": "GetImageSize",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5060": [
+      {
+        "id": "sg_5548_5060",
+        "class_type": "LoadVideoDepthAnythingModel",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5062": [
+      {
+        "id": "sg_5548_5062",
+        "class_type": "VideoDepthAnythingOutput",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_4991": [
+      {
+        "id": "sg_5548_4991",
+        "class_type": "CannyEdgePreprocessor",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_4986": [
+      {
+        "id": "sg_5548_4986",
+        "class_type": "DWPreprocessor",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5000": [
+      {
+        "id": "sg_5548_5000",
+        "class_type": "GetVideoComponents",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5026": [
+      {
+        "id": "sg_5548_5026",
+        "class_type": "ResizeImageMaskNode",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5548_5034": [
+      {
+        "id": "sg_5548_5034",
+        "class_type": "ComfyMathExpression",
+        "prefix": "sg_5548_"
+      }
+    ],
+    "sg_5518_4848": [
+      {
+        "id": "sg_5518_4848",
+        "class_type": "LTXVAudioVAEDecode",
+        "prefix": "sg_5518_"
+      }
+    ],
+    "sg_5518_4849": [
+      {
+        "id": "sg_5518_4849",
+        "class_type": "CreateVideo",
+        "prefix": "sg_5518_"
+      }
+    ],
+    "sg_5518_5538": [
+      {
+        "id": "sg_5518_5538",
+        "class_type": "VAEDecodeTiled",
+        "prefix": "sg_5518_"
+      }
+    ],
+    "seed": [
+      {
+        "id": "sg_5516_4832",
+        "class_type": "RandomNoise",
+        "prefix": "sg_5516_"
+      },
+      {
+        "id": "sg_5517_4967",
+        "class_type": "RandomNoise",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5516_4828": [
+      {
+        "id": "sg_5516_4828",
+        "class_type": "CFGGuider",
+        "prefix": "sg_5516_"
+      }
+    ],
+    "sg_5516_4831": [
+      {
+        "id": "sg_5516_4831",
+        "class_type": "KSamplerSelect",
+        "prefix": "sg_5516_"
+      }
+    ],
+    "sg_5516_4984": [
+      {
+        "id": "sg_5516_4984",
+        "class_type": "ManualSigmas",
+        "prefix": "sg_5516_"
+      }
+    ],
+    "sg_5516_4829": [
+      {
+        "id": "sg_5516_4829",
+        "class_type": "SamplerCustomAdvanced",
+        "prefix": "sg_5516_"
+      }
+    ],
+    "sg_5516_4845": [
+      {
+        "id": "sg_5516_4845",
+        "class_type": "LTXVSeparateAVLatent",
+        "prefix": "sg_5516_"
+      }
+    ],
+    "sg_5004_5600": [
+      {
+        "id": "sg_5004_5600",
+        "class_type": "VAELoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5601": [
+      {
+        "id": "sg_5004_5601",
+        "class_type": "VAELoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5602": [
+      {
+        "id": "sg_5004_5602",
+        "class_type": "UNETLoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5604": [
+      {
+        "id": "sg_5004_5604",
+        "class_type": "LatentUpscaleModelLoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5605": [
+      {
+        "id": "sg_5004_5605",
+        "class_type": "CLIPLoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5606": [
+      {
+        "id": "sg_5004_5606",
+        "class_type": "CLIPLoader",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5004_5607": [
+      {
+        "id": "sg_5004_5607",
+        "class_type": "LTXICLoRALoaderModelOnly",
+        "prefix": "sg_5004_"
+      }
+    ],
+    "sg_5517_4975": [
+      {
+        "id": "sg_5517_4975",
+        "class_type": "LTXVLatentUpsampler",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4970": [
+      {
+        "id": "sg_5517_4970",
+        "class_type": "LTXVImgToVideoInplace",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4969": [
+      {
+        "id": "sg_5517_4969",
+        "class_type": "LTXVConcatAVLatent",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4985": [
+      {
+        "id": "sg_5517_4985",
+        "class_type": "ManualSigmas",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4976": [
+      {
+        "id": "sg_5517_4976",
+        "class_type": "KSamplerSelect",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4964": [
+      {
+        "id": "sg_5517_4964",
+        "class_type": "CFGGuider",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4973": [
+      {
+        "id": "sg_5517_4973",
+        "class_type": "LTXVSeparateAVLatent",
+        "prefix": "sg_5517_"
+      }
+    ],
+    "sg_5517_4971": [
+      {
+        "id": "sg_5517_4971",
+        "class_type": "SamplerCustomAdvanced",
+        "prefix": "sg_5517_"
+      }
+    ]
+  },
+  "inputs": {},
+  "outputs": {},
+  "source": "lightricks_ltx25_union_control_ac4d998.json",
+  "source_commit": "ac4d99839020b983e956a8ab67ec38aec1b6e65a",
+  "control_preprocessors": [
+    "depth"
+  ]
+}

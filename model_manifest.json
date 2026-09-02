@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "model_root_env": "RUNPOD_NETWORK_VOLUME_PATH",
+  "profiles": {
+    "ltx25_int8_distilled": {
+      "description": "Official ComfyUI int8/convrot distilled single-stage/two-stage profile.",
+      "required": [
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "directory": "diffusion_models"},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "directory": "text_encoders"},
+        {"repo": "Comfy-Org/gemma-4", "revision": "main", "path": "text_encoders/gemma4_e2b_it_bf16.safetensors", "directory": "text_encoders"},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-video-vae-bf16.safetensors", "directory": "vae"},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-audio-vae-bf16.safetensors", "directory": "vae"},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", "directory": "latent_upscale_models"}
+      ],
+      "optional": [
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "model_patches/ltx-2.5-duration-head-bf16.safetensors", "directory": "model_patches"}
+      ]
+    },
+    "ltx25_bf16_core": {
+      "description": "Official LTX-2.5 BF16 core two-stage profile with native prompt enhancement.",
+      "required": [
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors", "directory": "diffusion_models", "expected_bytes": 42018190584},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "text_encoders/gemma4-12b-with-proj-ltx-2.5-bf16.safetensors", "directory": "text_encoders", "expected_bytes": 26263860594},
+        {"repo": "Comfy-Org/gemma-4", "revision": "main", "path": "text_encoders/gemma4_e2b_it_bf16.safetensors", "directory": "text_encoders", "expected_bytes": 10278774160},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-video-vae-bf16.safetensors", "directory": "vae", "expected_bytes": 1472223346},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-audio-vae-bf16.safetensors", "directory": "vae", "expected_bytes": 364866540},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", "directory": "latent_upscale_models"}
+      ],
+      "optional": []
+    },
+    "ltx25_bf16_control": {
+      "description": "Official Lightricks IC-LoRA control examples use the BF16 distilled transformer, official Union upscaler, and Video Depth Anything preprocessing.",
+      "required": [
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors", "directory": "diffusion_models", "expected_bytes": 42018190584},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "text_encoders/gemma4-12b-with-proj-ltx-2.5-bf16.safetensors", "directory": "text_encoders", "expected_bytes": 26263860594},
+        {"repo": "Comfy-Org/gemma-4", "revision": "main", "path": "text_encoders/gemma4_e2b_it_bf16.safetensors", "directory": "text_encoders", "expected_bytes": 10278774160},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-video-vae-bf16.safetensors", "directory": "vae", "expected_bytes": 1472223346},
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "vae/ltx-2.5-audio-vae-bf16.safetensors", "directory": "vae", "expected_bytes": 364866540},
+        {"repo": "Lightricks/LTX-2.3", "revision": "main", "path": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors", "directory": "latent_upscale_models", "expected_bytes": 995743560, "sha256": "5f416311fa8172b65af67530758964708d29a317b830d689a51143b7f91913ed"},
+        {"repo": "depth-anything/Video-Depth-Anything-Small", "revision": "main", "path": "video_depth_anything_vits.pth", "directory": "videodepthanything", "expected_bytes": 116440756, "sha256": "13379300b739e659f076a59d52e9801bd8d38c541a7e71f73bbca4dcfb013609"}
+      ],
+      "required_loras": ["union_control", "motion_track"],
+      "optional": [
+        {"repo": "Lightricks/LTX-2.5", "revision": "main", "path": "model_patches/ltx-2.5-duration-head-bf16.safetensors", "directory": "model_patches"}
+      ]
+    }
+  },
+  "lora_repositories": {
+    "pixel_upscale_x2": {"repo": "Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler", "revision": "main", "path": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors", "directory": "loras"},
+    "union_control": {"repo": "Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control", "revision": "main", "path": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors", "directory": "loras", "expected_bytes": 654465352},
+    "motion_track": {"repo": "Lightricks/LTX-2.3-22b-IC-LoRA-Motion-Track-Control", "revision": "main", "path": "ltx-2.3-22b-ic-lora-motion-track-control-ref0.5.safetensors", "directory": "loras", "expected_bytes": 327309314}
+  },
+  "workflow_dependencies": {
+    "union_control": {
+      "model_profile": "ltx25_bf16_control",
+      "control_types": ["depth"],
+      "preprocessor": "Video Depth Anything",
+      "required_loras": ["union_control"],
+      "source_workflow_commit": "ac4d99839020b983e956a8ab67ec38aec1b6e65a"
+    },
+    "motion_track": {
+      "model_profile": "ltx25_bf16_control",
+      "control_types": ["sparse_tracks"],
+      "preprocessor": "LTXVSparseTrackEditor",
+      "required_loras": ["motion_track"],
+      "source_workflow_commit": "ac4d99839020b983e956a8ab67ec38aec1b6e65a"
+    }
+  },
+  "access": {
+    "gated_repositories": ["Lightricks/LTX-2.5", "Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler", "Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control", "Lightricks/LTX-2.3-22b-IC-LoRA-Motion-Track-Control"],
+    "note": "Accept the LTX-2 community license and use a read-enabled HF token. Bootstrap never bypasses the gate."
+  }
+}

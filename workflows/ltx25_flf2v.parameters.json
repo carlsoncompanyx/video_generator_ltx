@@ -1,0 +1,280 @@
+{
+  "nodes": {
+    "sg_251_210": [
+      {
+        "id": "sg_251_210",
+        "class_type": "LTXVConcatAVLatent",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_219": [
+      {
+        "id": "sg_251_219",
+        "class_type": "VAEDecodeTiled",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_220": [
+      {
+        "id": "sg_251_220",
+        "class_type": "LTXVAudioVAEDecode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_221": [
+      {
+        "id": "sg_251_221",
+        "class_type": "LTXVSeparateAVLatent",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_206": [
+      {
+        "id": "sg_251_206",
+        "class_type": "LTXVAddGuide",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_239": [
+      {
+        "id": "sg_251_239",
+        "class_type": "ManualSigmas",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_204": [
+      {
+        "id": "sg_251_204",
+        "class_type": "LTXVAddGuide",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_197": [
+      {
+        "id": "sg_251_197",
+        "class_type": "LTXVEmptyLatentAudio",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_200": [
+      {
+        "id": "sg_251_200",
+        "class_type": "LTXVCropGuides",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_201": [
+      {
+        "id": "sg_251_201",
+        "class_type": "EmptyLTXVLatentVideo",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_211": [
+      {
+        "id": "sg_251_211",
+        "class_type": "SamplerCustomAdvanced",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_202": [
+      {
+        "id": "sg_251_202",
+        "class_type": "LTXVConditioning",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_208": [
+      {
+        "id": "sg_251_208",
+        "class_type": "SamplerEulerAncestral",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_218": [
+      {
+        "id": "sg_251_218",
+        "class_type": "CreateVideo",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_235": [
+      {
+        "id": "sg_251_235",
+        "class_type": "LTXVDualCFGGuider",
+        "prefix": "sg_251_"
+      }
+    ],
+    "seed": [
+      {
+        "id": "sg_251_196",
+        "class_type": "RandomNoise",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_217": [
+      {
+        "id": "sg_251_217",
+        "class_type": "CLIPTextEncode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_222": [
+      {
+        "id": "sg_251_222",
+        "class_type": "CLIPTextEncode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_248": [
+      {
+        "id": "sg_251_248",
+        "class_type": "ComfySwitchNode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_203": [
+      {
+        "id": "sg_251_203",
+        "class_type": "GetImageSize",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_195": [
+      {
+        "id": "sg_251_195",
+        "class_type": "LTXVPreprocess",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_199": [
+      {
+        "id": "sg_251_199",
+        "class_type": "LTXVPreprocess",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_247": [
+      {
+        "id": "sg_251_247",
+        "class_type": "TextGenerateLTX2Prompt",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_213": [
+      {
+        "id": "sg_251_213",
+        "class_type": "ResizeImageMaskNode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_214": [
+      {
+        "id": "sg_251_214",
+        "class_type": "ResizeImageMaskNode",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_249": [
+      {
+        "id": "sg_251_249",
+        "class_type": "PreviewAny",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_230": [
+      {
+        "id": "sg_251_230",
+        "class_type": "UNETLoader",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_229": [
+      {
+        "id": "sg_251_229",
+        "class_type": "VAELoader",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_227": [
+      {
+        "id": "sg_251_227",
+        "class_type": "VAELoader",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_228": [
+      {
+        "id": "sg_251_228",
+        "class_type": "CLIPLoader",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_246": [
+      {
+        "id": "sg_251_246",
+        "class_type": "CLIPLoader",
+        "prefix": "sg_251_"
+      }
+    ],
+    "prompt_enhance": [
+      {
+        "id": "sg_251_250",
+        "class_type": "PrimitiveBoolean",
+        "prefix": "sg_251_"
+      }
+    ],
+    "width": [
+      {
+        "id": "sg_251_215",
+        "class_type": "PrimitiveInt",
+        "prefix": "sg_251_"
+      }
+    ],
+    "height": [
+      {
+        "id": "sg_251_216",
+        "class_type": "PrimitiveInt",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_212": [
+      {
+        "id": "sg_251_212",
+        "class_type": "ComfyMathExpression",
+        "prefix": "sg_251_"
+      }
+    ],
+    "duration": [
+      {
+        "id": "sg_251_198",
+        "class_type": "PrimitiveInt",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_226": [
+      {
+        "id": "sg_251_226",
+        "class_type": "ComfyMathExpression",
+        "prefix": "sg_251_"
+      }
+    ],
+    "sg_251_205": [
+      {
+        "id": "sg_251_205",
+        "class_type": "PrimitiveInt",
+        "prefix": "sg_251_"
+      }
+    ],
+    "prompt": [
+      {
+        "id": "sg_251_252",
+        "class_type": "PrimitiveStringMultiline",
+        "prefix": "sg_251_"
+      }
+    ]
+  },
+  "inputs": {},
+  "outputs": {},
+  "source": "comfy_org_video_ltx2_5_flf2v.json"
+}

@@ -1,0 +1,684 @@
+{
+  "sg_251_210": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "sg_251_204",
+        2
+      ],
+      "audio_latent": [
+        "sg_251_197",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 210,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_219": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "tile_size": 512,
+      "overlap": 64,
+      "temporal_size": 64,
+      "temporal_overlap": 16,
+      "samples": [
+        "sg_251_200",
+        2
+      ],
+      "vae": [
+        "sg_251_229",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 219,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_220": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": [
+        "sg_251_221",
+        1
+      ],
+      "audio_vae": [
+        "sg_251_227",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 220,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_221": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "sg_251_211",
+        1
+      ]
+    },
+    "_meta": {
+      "source_id": 221,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_206": {
+    "class_type": "LTXVAddGuide",
+    "inputs": {
+      "positive": [
+        "sg_251_202",
+        0
+      ],
+      "negative": [
+        "sg_251_202",
+        1
+      ],
+      "vae": [
+        "sg_251_229",
+        0
+      ],
+      "latent": [
+        "sg_251_201",
+        0
+      ],
+      "image": [
+        "sg_251_199",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 206,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_239": {
+    "class_type": "ManualSigmas",
+    "inputs": {
+      "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+    },
+    "_meta": {
+      "source_id": 239,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_204": {
+    "class_type": "LTXVAddGuide",
+    "inputs": {
+      "positive": [
+        "sg_251_206",
+        0
+      ],
+      "negative": [
+        "sg_251_206",
+        1
+      ],
+      "vae": [
+        "sg_251_229",
+        0
+      ],
+      "latent": [
+        "sg_251_206",
+        2
+      ],
+      "image": [
+        "sg_251_195",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 204,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_197": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": [
+        "sg_251_226",
+        1
+      ],
+      "frame_rate": [
+        "sg_251_205",
+        0
+      ],
+      "batch_size": 1,
+      "audio_vae": [
+        "sg_251_227",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 197,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_200": {
+    "class_type": "LTXVCropGuides",
+    "inputs": {
+      "positive": [
+        "sg_251_204",
+        0
+      ],
+      "negative": [
+        "sg_251_204",
+        1
+      ],
+      "latent": [
+        "sg_251_221",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 200,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_201": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": [
+        "sg_251_203",
+        0
+      ],
+      "height": [
+        "sg_251_203",
+        1
+      ],
+      "length": [
+        "sg_251_226",
+        1
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "source_id": 201,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_211": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "sg_251_196",
+        0
+      ],
+      "guider": [
+        "sg_251_235",
+        0
+      ],
+      "sampler": [
+        "sg_251_208",
+        0
+      ],
+      "sigmas": [
+        "sg_251_239",
+        0
+      ],
+      "latent_image": [
+        "sg_251_210",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 211,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_202": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "frame_rate": [
+        "sg_251_212",
+        0
+      ],
+      "positive": [
+        "sg_251_222",
+        0
+      ],
+      "negative": [
+        "sg_251_217",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 202,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_208": {
+    "class_type": "SamplerEulerAncestral",
+    "inputs": {},
+    "_meta": {
+      "source_id": 208,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_218": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "sg_251_212",
+        0
+      ],
+      "bit_depth": 8,
+      "images": [
+        "sg_251_219",
+        0
+      ],
+      "audio": [
+        "sg_251_220",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 218,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_235": {
+    "class_type": "LTXVDualCFGGuider",
+    "inputs": {
+      "video_cfg": 1,
+      "audio_cfg": 1,
+      "model": [
+        "sg_251_230",
+        0
+      ],
+      "positive": [
+        "sg_251_204",
+        0
+      ],
+      "negative": [
+        "sg_251_204",
+        1
+      ]
+    },
+    "_meta": {
+      "source_id": 235,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_196": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 873293130933086,
+      "control_after_generate": "randomize"
+    },
+    "_meta": {
+      "source_id": 196,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_217": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
+      "clip": [
+        "sg_251_228",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 217,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_222": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "sg_251_248",
+        0
+      ],
+      "clip": [
+        "sg_251_228",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 222,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_248": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "sg_251_252",
+        0
+      ],
+      "on_true": [
+        "sg_251_247",
+        0
+      ],
+      "switch": [
+        "sg_251_250",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 248,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_203": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": [
+        "sg_251_213",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 203,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_195": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {
+      "image": [
+        "sg_251_214",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 195,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_199": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {
+      "image": [
+        "sg_251_213",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 199,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_247": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "max_length": 600,
+      "sampling_mode": "on",
+      "temperature": 0.7,
+      "top_k": 64,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "repetition_penalty": 1.15,
+      "seed": 0,
+      "presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "sg_251_246",
+        0
+      ],
+      "image": [
+        "sg_251_199",
+        0
+      ],
+      "prompt": [
+        "sg_251_252",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 247,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_213": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "top_31",
+        0
+      ],
+      "resize_type.width": [
+        "sg_251_215",
+        0
+      ],
+      "resize_type.height": [
+        "sg_251_216",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 213,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_214": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "top_39",
+        0
+      ],
+      "resize_type.width": [
+        "sg_251_215",
+        0
+      ],
+      "resize_type.height": [
+        "sg_251_216",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 214,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_249": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "sg_251_248",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 249,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_230": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "source_id": 230,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_229": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+    },
+    "_meta": {
+      "source_id": 229,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_227": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
+    },
+    "_meta": {
+      "source_id": 227,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_228": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "_meta": {
+      "source_id": 228,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_246": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma4_e2b_it_bf16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "_meta": {
+      "source_id": 246,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_250": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    },
+    "_meta": {
+      "source_id": 250,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_215": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 1280,
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 215,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_216": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 720,
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 216,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_212": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a",
+      "values.a": [
+        "sg_251_205",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 212,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_198": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 5,
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 198,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_226": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a * b + 1",
+      "values.a": [
+        "sg_251_198",
+        0
+      ],
+      "values.b": [
+        "sg_251_205",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 226,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_205": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 24,
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 205,
+      "prefix": "sg_251_"
+    }
+  },
+  "sg_251_252": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "Use the provided start image as the first frame and the provided end image as the final frame anchor. The video opens on the back of the robotic hand, four fingers slightly curled, joints glowing faintly in the darkness, a low electrical hum filling the space. The hand rotates slowly at the wrist, turning from the back view toward the palm side, the four visible fingers uncurling gently one by one, starting with the index finger, then the middle, ring, and pinky, each joint clicking softly. As the palm turns upward, the thumb swings out from the side of the hand into view, clearly separate from the four fingers, all five fingers spreading open. A blue energy crystal fades into existence above the palm, its hum rising into a resonant tone, thin energy threads coiling around it, particles crackling softly as they spiral away like sparks. The crystal rotates slowly, hovering above the fully open hand, light spilling between the five spread fingers, the crystal's steady hum filling the silence as the video ends on the open palm with the glowing crystal.\n"
+    },
+    "_meta": {
+      "source_id": 252,
+      "prefix": "sg_251_"
+    }
+  },
+  "top_39": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "robot_hand_energy.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "source_id": 39,
+      "prefix": "top_"
+    }
+  },
+  "top_68": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ltx2.5_flf2v",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "sg_251_218",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 68,
+      "prefix": "top_"
+    }
+  },
+  "top_31": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "robot_hand.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "source_id": 31,
+      "prefix": "top_"
+    }
+  }
+}

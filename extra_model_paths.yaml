@@ -1,0 +1,12 @@
+# Large weights live on the attached RunPod Network Volume, not in the image.
+# RUNPOD_NETWORK_VOLUME_PATH is substituted by the container entrypoint.
+comfyui:
+  base_path: /runpod-volume/models
+  diffusion_models: diffusion_models/
+  text_encoders: text_encoders/
+  clip: text_encoders/
+  vae: vae/
+  latent_upscale_models: latent_upscale_models/
+  loras: loras/
+  model_patches: model_patches/
+  videodepthanything: videodepthanything/

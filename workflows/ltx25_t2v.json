@@ -1,0 +1,735 @@
+{
+  "sg_5514_3336": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {
+      "image": [
+        "sg_5014_4990",
+        0
+      ],
+      "img_compression": 18
+    },
+    "_meta": {
+      "source_id": 3336,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5514_3059": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {
+      "width": 960,
+      "height": 544,
+      "length": [
+        "sg_5014_4988",
+        0
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "source_id": 3059,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5514_5000": {
+    "class_type": "LTXFloatToInt",
+    "inputs": {
+      "a": [
+        "sg_5014_5017",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5000,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5514_3980": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": [
+        "sg_5014_4988",
+        0
+      ],
+      "frame_rate": [
+        "sg_5514_5000",
+        0
+      ],
+      "batch_size": 1,
+      "audio_vae": [
+        "sg_5004_5570",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 3980,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5514_3159": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {
+      "vae": [
+        "sg_5004_5571",
+        0
+      ],
+      "image": [
+        "sg_5514_3336",
+        0
+      ],
+      "latent": [
+        "sg_5514_3059",
+        0
+      ],
+      "bypass": [
+        "sg_5014_5019",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 3159,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5514_4528": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "sg_5514_3159",
+        0
+      ],
+      "audio_latent": [
+        "sg_5514_3980",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4528,
+      "prefix": "sg_5514_"
+    }
+  },
+  "sg_5516_4832": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 42,
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 4832,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5516_4828": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "sg_5004_5569",
+        0
+      ],
+      "positive": [
+        "sg_5014_5558",
+        0
+      ],
+      "negative": [
+        "sg_5014_5560",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4828,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5516_4831": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler_ancestral"
+    },
+    "_meta": {
+      "source_id": 4831,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5516_4984": {
+    "class_type": "ManualSigmas",
+    "inputs": {
+      "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+    },
+    "_meta": {
+      "source_id": 4984,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5516_4829": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "sg_5516_4832",
+        0
+      ],
+      "guider": [
+        "sg_5516_4828",
+        0
+      ],
+      "sampler": [
+        "sg_5516_4831",
+        0
+      ],
+      "sigmas": [
+        "sg_5516_4984",
+        0
+      ],
+      "latent_image": [
+        "sg_5514_4528",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4829,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5516_4845": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "sg_5516_4829",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4845,
+      "prefix": "sg_5516_"
+    }
+  },
+  "sg_5518_4848": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": [
+        "sg_5516_4845",
+        1
+      ],
+      "audio_vae": [
+        "sg_5004_5570",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4848,
+      "prefix": "sg_5518_"
+    }
+  },
+  "sg_5518_4849": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": [
+        "sg_5014_5017",
+        0
+      ],
+      "bit_depth": 8,
+      "images": [
+        "sg_5518_5538",
+        0
+      ],
+      "audio": [
+        "sg_5518_4848",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4849,
+      "prefix": "sg_5518_"
+    }
+  },
+  "sg_5518_5538": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "tile_size": 512,
+      "overlap": 64,
+      "temporal_size": 64,
+      "temporal_overlap": 8,
+      "samples": [
+        "sg_5516_4845",
+        0
+      ],
+      "vae": [
+        "sg_5004_5571",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5538,
+      "prefix": "sg_5518_"
+    }
+  },
+  "sg_5014_4990": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "input": [
+        "top_2004",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4990,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5019": {
+    "class_type": "ComfyNotNode",
+    "inputs": {
+      "value": [
+        "sg_5014_5506",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5019,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_2612": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "top_5509",
+        0
+      ],
+      "clip": [
+        "sg_5004_5572",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 2612,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5506": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    },
+    "_meta": {
+      "source_id": 5506,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5549": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "max_length": 600,
+      "sampling_mode": "on",
+      "temperature": 0.01,
+      "top_k": 0,
+      "top_p": 1,
+      "min_p": 0,
+      "repetition_penalty": 1.15,
+      "seed": 0,
+      "presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "sg_5004_5545",
+        0
+      ],
+      "prompt": [
+        "top_5508",
+        0
+      ],
+      "sampling_mode.seed": 457289196
+    },
+    "_meta": {
+      "source_id": 5549,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5546": {
+    "class_type": "TextGenerateLTX2Prompt",
+    "inputs": {
+      "max_length": 600,
+      "sampling_mode": "on",
+      "temperature": 0.01,
+      "top_k": 0,
+      "top_p": 1,
+      "min_p": 0,
+      "repetition_penalty": 1.15,
+      "seed": 0,
+      "presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "sg_5004_5545",
+        0
+      ],
+      "image": [
+        "sg_5014_4990",
+        0
+      ],
+      "prompt": [
+        "top_5508",
+        0
+      ],
+      "sampling_mode.seed": 457289196
+    },
+    "_meta": {
+      "source_id": 5546,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5555": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "sg_5014_5549",
+        0
+      ],
+      "on_true": [
+        "sg_5014_5546",
+        0
+      ],
+      "switch": [
+        "sg_5014_5506",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5555,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_2483": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "sg_5014_5556",
+        0
+      ],
+      "clip": [
+        "sg_5004_5572",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 2483,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5557": {
+    "class_type": "StringContains",
+    "inputs": {
+      "substring": "ltxv_",
+      "case_sensitive": true,
+      "string": ""
+    },
+    "_meta": {
+      "source_id": 5557,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_1241": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "frame_rate": [
+        "sg_5014_5017",
+        0
+      ],
+      "positive": [
+        "sg_5014_2483",
+        0
+      ],
+      "negative": [
+        "sg_5014_2612",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 1241,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5560": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "sg_5014_1241",
+        1
+      ],
+      "on_true": [
+        "sg_5014_5505",
+        0
+      ],
+      "switch": [
+        "sg_5014_5557",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5560,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5558": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "sg_5014_1241",
+        0
+      ],
+      "on_true": [
+        "sg_5014_5504",
+        0
+      ],
+      "switch": [
+        "sg_5014_5557",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5558,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5556": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "on_false": [
+        "top_5508",
+        0
+      ],
+      "on_true": [
+        "sg_5014_5555",
+        0
+      ],
+      "switch": true
+    },
+    "_meta": {
+      "source_id": 5556,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5017": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": [
+        "top_5511",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5017,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5507": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": [
+        "top_5512",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5507,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5561": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "1 + floor(a*b/8)*8",
+      "values.a": [
+        "sg_5014_5017",
+        0
+      ],
+      "values.b": [
+        "sg_5014_5507",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5561,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_4988": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": [
+        "sg_5014_5561",
+        1
+      ],
+      "control_after_generate": "fixed"
+    },
+    "_meta": {
+      "source_id": 4988,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5504": {
+    "class_type": "GemmaAPITextEncode",
+    "inputs": {
+      "api_key": "",
+      "prompt": [
+        "top_5508",
+        0
+      ],
+      "enhance_prompt": true,
+      "ckpt_name": "ltx-2.5-22b-distilled-transformer-bf16.safetensors"
+    },
+    "_meta": {
+      "source_id": 5504,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5014_5505": {
+    "class_type": "GemmaAPITextEncode",
+    "inputs": {
+      "api_key": "",
+      "prompt": [
+        "top_5509",
+        0
+      ],
+      "ckpt_name": "ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+      "enhance_prompt": false
+    },
+    "_meta": {
+      "source_id": 5505,
+      "prefix": "sg_5014_"
+    }
+  },
+  "sg_5004_5570": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
+    },
+    "_meta": {
+      "source_id": 5570,
+      "prefix": "sg_5004_"
+    }
+  },
+  "sg_5004_5571": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+    },
+    "_meta": {
+      "source_id": 5571,
+      "prefix": "sg_5004_"
+    }
+  },
+  "sg_5004_5569": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "source_id": 5569,
+      "prefix": "sg_5004_"
+    }
+  },
+  "sg_5004_5545": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma4_e2b_it_bf16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "_meta": {
+      "source_id": 5545,
+      "prefix": "sg_5004_"
+    }
+  },
+  "sg_5004_5572": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma4-12b-with-proj-ltx-2.5-bf16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "_meta": {
+      "source_id": 5572,
+      "prefix": "sg_5004_"
+    }
+  },
+  "top_5509": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": ""
+    },
+    "_meta": {
+      "source_id": 5509,
+      "prefix": "top_"
+    }
+  },
+  "top_5512": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 5
+    },
+    "_meta": {
+      "source_id": 5512,
+      "prefix": "top_"
+    }
+  },
+  "top_4852": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "output",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "sg_5518_4849",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 4852,
+      "prefix": "top_"
+    }
+  },
+  "top_5511": {
+    "class_type": "PrimitiveFloat",
+    "inputs": {
+      "value": 24
+    },
+    "_meta": {
+      "source_id": 5511,
+      "prefix": "top_"
+    }
+  },
+  "top_5544": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "sg_5014_5556",
+        0
+      ]
+    },
+    "_meta": {
+      "source_id": 5544,
+      "prefix": "top_"
+    }
+  },
+  "top_5508": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": ""
+    },
+    "_meta": {
+      "source_id": 5508,
+      "prefix": "top_"
+    }
+  },
+  "top_2004": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "",
+      "upload": "image"
+    },
+    "_meta": {
+      "source_id": 2004,
+      "prefix": "top_"
+    }
+  }
+}

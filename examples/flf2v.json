@@ -1,0 +1,14 @@
+{
+  "input": {
+    "mode": "flf2v",
+    "prompt": "Move naturally from the first reference frame to the last reference frame with stable identity, clothing, props, lighting, and background.",
+    "seed": 42,
+    "width": 480,
+    "height": 512,
+    "frames": 41,
+    "fps": 24,
+    "generate_audio": true,
+    "image_url": "https://example.invalid/first.png",
+    "last_frame_url": "https://example.invalid/last.png"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "status": "not_validated",
+  "mode": "pixel_upscale",
+  "model": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors",
+  "source": "Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler",
+  "reason": "The current official ComfyUI LTX-2.5 templates contain native latent spatial upscaling but do not include a validated Pixel IC-LoRA API graph.",
+  "policy": "The handler rejects this mode until an official or GPU-validated graph is added; this file is not executable API-format workflow data."
+}

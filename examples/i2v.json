@@ -1,0 +1,14 @@
+{
+  "input": {
+    "mode": "i2v",
+    "prompt": "The person in the reference image slowly turns toward the camera and takes one natural step forward while keeping identity, clothing, lighting, and background stable.",
+    "seed": 42,
+    "width": 480,
+    "height": 512,
+    "frames": 41,
+    "fps": 24,
+    "generate_audio": true,
+    "enhance_prompt": true,
+    "image_url": "https://example.invalid/reference.png"
+  }
+}
