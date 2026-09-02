@@ -12,16 +12,21 @@ ENV DEBIAN_FRONTEND=noninteractive \
     COMFY_API_AVAILABLE_MAX_RETRIES=0
 
 # Reuse the published 0.1.3 CUDA/PyTorch/ComfyUI layer. Only the official
-# custom nodes required by the control graphs are added here.
-RUN mkdir -p /comfyui/custom_nodes \
-    && git clone --filter=blob:none https://github.com/Lightricks/ComfyUI-LTXVideo.git /comfyui/custom_nodes/ComfyUI-LTXVideo \
-    && cd /comfyui/custom_nodes/ComfyUI-LTXVideo \
-    && git fetch --depth=1 origin "${LTXVIDEO_GIT_COMMIT}" \
-    && git checkout --detach "${LTXVIDEO_GIT_COMMIT}" \
-    && git clone --filter=blob:none https://github.com/yuvraj108c/ComfyUI-Video-Depth-Anything.git /comfyui/custom_nodes/ComfyUI-Video-Depth-Anything \
-    && cd /comfyui/custom_nodes/ComfyUI-Video-Depth-Anything \
-    && git fetch --depth=1 origin "${VDA_GIT_COMMIT}" \
-    && git checkout --detach "${VDA_GIT_COMMIT}"
+# custom nodes required by the control graphs are added here. Download pinned
+# public source archives directly so BuildKit never attempts an authenticated
+# Git transport.
+RUN mkdir -p \
+      /comfyui/custom_nodes/ComfyUI-LTXVideo \
+      /comfyui/custom_nodes/ComfyUI-Video-Depth-Anything \
+    && python -c "import urllib.request; urllib.request.urlretrieve('https://codeload.github.com/Lightricks/ComfyUI-LTXVideo/tar.gz/${LTXVIDEO_GIT_COMMIT}', '/tmp/ltxvideo.tar.gz')" \
+    && tar -xzf /tmp/ltxvideo.tar.gz \
+         --strip-components=1 \
+         -C /comfyui/custom_nodes/ComfyUI-LTXVideo \
+    && python -c "import urllib.request; urllib.request.urlretrieve('https://codeload.github.com/yuvraj108c/ComfyUI-Video-Depth-Anything/tar.gz/${VDA_GIT_COMMIT}', '/tmp/vda.tar.gz')" \
+    && tar -xzf /tmp/vda.tar.gz \
+         --strip-components=1 \
+         -C /comfyui/custom_nodes/ComfyUI-Video-Depth-Anything \
+    && rm -f /tmp/ltxvideo.tar.gz /tmp/vda.tar.gz
 
 COPY requirements.txt /worker-requirements.txt
 
