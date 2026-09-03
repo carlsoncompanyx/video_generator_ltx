@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotently verify/download the approved LTX-2.5 runtime files."""
+"""Idempotently verify and map the approved LTX-2.5 runtime files."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "model_manifest.json"
+DEFAULT_CACHE_REPO = "Torchem/LTX-2.5-Production"
 
 
 def model_root() -> Path:
@@ -44,41 +45,183 @@ def entries_for(manifest: dict, profile: str | None = None, loras: list[str] | N
     return unique
 
 
+def optional_entries_for(manifest: dict, profile: str | None = None) -> list[dict]:
+    if not profile:
+        return []
+    selected = manifest["profiles"].get(profile)
+    if not selected:
+        raise SystemExit(f"Unknown model profile: {profile}")
+    return list(selected.get("optional", []))
+
+
 def target_path(root: Path, entry: dict) -> Path:
     return root / entry["directory"] / Path(entry["path"]).name
 
 
-def cached_snapshot_path(cache_root: Path, entry: dict) -> Path | None:
-    repo = entry.get("repo", "")
+def configured_cache_repo(manifest: dict) -> str:
+    return os.environ.get("LTX25_CACHE_REPO") or manifest.get("cache_repo") or DEFAULT_CACHE_REPO
+
+
+def cache_repo_for(manifest: dict, entry: dict) -> str:
+    return entry.get("cache_repo") or configured_cache_repo(manifest)
+
+
+def cache_model_root(cache_root: Path, repo: str) -> Path | None:
     if "/" not in repo:
         return None
     org, name = repo.split("/", 1)
-    model_root = cache_root / f"models--{org}--{name}"
+    return cache_root / f"models--{org}--{name}"
+
+
+def cached_snapshot_dirs(cache_root: Path, repo: str, revision: str = "main") -> list[Path]:
+    model_root = cache_model_root(cache_root, repo)
+    if model_root is None:
+        return []
+    snapshots_root = model_root / "snapshots"
+    if not snapshots_root.is_dir():
+        return []
+
+    candidates: list[Path] = []
+    refs = [revision]
+    if revision != "main":
+        refs.append("main")
+    for ref_name in refs:
+        ref = model_root / "refs" / ref_name
+        snapshot_id = ref.read_text(encoding="utf-8").strip() if ref.is_file() else ""
+        if snapshot_id:
+            snapshot = snapshots_root / snapshot_id
+            if snapshot.is_dir():
+                candidates.append(snapshot)
+    candidates.extend(sorted(path for path in snapshots_root.iterdir() if path.is_dir()))
+
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            unique.append(candidate)
+    return unique
+
+
+def cached_snapshot_for_repo(cache_root: Path, repo: str, revision: str = "main") -> Path | None:
+    return next(iter(cached_snapshot_dirs(cache_root, repo, revision)), None)
+
+
+def cached_file_in_snapshot(snapshot: Path, entry_path: str) -> Path | None:
+    exact = snapshot / entry_path
+    if exact.is_file():
+        return exact
+
+    filename = Path(entry_path).name
+    preferred_parent = snapshot / Path(entry_path).parent
+    if preferred_parent.is_dir():
+        preferred = sorted(path for path in preferred_parent.glob(filename) if path.is_file())
+        if preferred:
+            return preferred[0]
+
+    matches = sorted(path for path in snapshot.rglob(filename) if path.is_file())
+    if matches:
+        return matches[0]
+
+    folded = filename.casefold()
+    folded_matches = sorted(
+        path for path in snapshot.rglob("*") if path.is_file() and path.name.casefold() == folded
+    )
+    return folded_matches[0] if folded_matches else None
+
+
+def resolve_cached_entry(
+    cache_root: Path, manifest: dict, entry: dict
+) -> tuple[Path | None, str, Path | None]:
+    repo = cache_repo_for(manifest, entry)
     revision = entry.get("revision", "main")
-    ref = model_root / "refs" / revision
-    snapshot_id = ref.read_text(encoding="utf-8").strip() if ref.is_file() else ""
-    candidates = []
-    if snapshot_id:
-        candidates.append(model_root / "snapshots" / snapshot_id / entry["path"])
-    candidates.extend(sorted((model_root / "snapshots").glob(f"*/{entry['path']}")))
-    return next((candidate for candidate in candidates if candidate.is_file()), None)
+    snapshots = cached_snapshot_dirs(cache_root, repo, revision)
+    for snapshot in snapshots:
+        source = cached_file_in_snapshot(snapshot, entry["path"])
+        if source is not None:
+            return source, repo, snapshot
+    return None, repo, snapshots[0] if snapshots else None
 
 
-def map_cached_entries(entries: list[dict], root: Path, cache_root: Path) -> list[str]:
+def cached_snapshot_path(
+    cache_root: Path, entry: dict, manifest: dict | None = None
+) -> Path | None:
+    manifest = manifest or {"cache_repo": DEFAULT_CACHE_REPO}
+    source, _, _ = resolve_cached_entry(cache_root, manifest, entry)
+    return source
+
+
+def map_cached_repository(root: Path, cache_root: Path, manifest: dict) -> list[str]:
+    """Expose all supported files from the curated cache by symlink, never by copying."""
+    repo = configured_cache_repo(manifest)
+    snapshot = cached_snapshot_for_repo(cache_root, repo)
+    if snapshot is None:
+        print(f"cache snapshot: MISSING repo={repo} root={cache_root}")
+        return []
+
+    mapped: list[str] = []
+    directories = manifest.get(
+        "cache_directories",
+        ["diffusion_models", "text_encoders", "vae", "latent_upscale_models", "loras", "model_patches"],
+    )
+    print(f"cache snapshot: FOUND repo={repo} snapshot={snapshot}")
+    for directory in directories:
+        source_root = snapshot / directory
+        if not source_root.is_dir():
+            print(f"cache directory: MISSING source={source_root}")
+            continue
+        count = 0
+        for source in sorted(path for path in source_root.rglob("*") if path.is_file()):
+            destination = root / source.relative_to(snapshot)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            same_target = False
+            if destination.is_symlink():
+                try:
+                    same_target = destination.resolve() == source.resolve()
+                except OSError:
+                    same_target = False
+            if same_target:
+                count += 1
+                continue
+            if destination.exists() or destination.is_symlink():
+                destination.unlink()
+            destination.symlink_to(source)
+            mapped.append(str(destination))
+            count += 1
+        print(f"cache directory: FOUND source={source_root} mapped={count}")
+    return mapped
+
+
+def map_cached_entries(
+    entries: list[dict], root: Path, cache_root: Path, manifest: dict, label: str
+) -> list[str]:
     """Expose cached HF files through ComfyUI without copying model weights."""
     mapped = []
     for entry in entries:
         destination = target_path(root, entry)
         if entry_matches(destination, entry):
+            print(
+                f"{label} model: FOUND filename={destination.name} "
+                f"destination={destination} (already mapped)"
+            )
             continue
-        source = cached_snapshot_path(cache_root, entry)
+        source, repo, snapshot = resolve_cached_entry(cache_root, manifest, entry)
         if source is None:
+            print(
+                f"{label} model: MISSING filename={destination.name} "
+                f"cache_repo={repo} snapshot={snapshot or 'not found'} destination={destination}"
+            )
             continue
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists() or destination.is_symlink():
             destination.unlink()
         destination.symlink_to(source)
         mapped.append(str(destination))
+        print(
+            f"{label} model: FOUND filename={destination.name} "
+            f"source={source} destination={destination}"
+        )
     return mapped
 
 
@@ -111,6 +254,7 @@ def verify(entries: list[dict], root: Path, verify_hash: bool = False) -> list[d
             "filename": path.name,
             "path": str(path),
             "repo": entry["repo"],
+            "cache_repo": entry.get("cache_repo"),
         }
         if path.is_file():
             record["actual_bytes"] = path.stat().st_size
@@ -178,8 +322,14 @@ def main() -> int:
     root = model_root()
     root.mkdir(parents=True, exist_ok=True)
     entries = entries_for(manifest, args.profile, args.lora)
+    optional_entries = optional_entries_for(manifest, args.profile)
     cache_root = Path(os.environ.get("LTX25_CACHE_ROOT", "/runpod-volume/huggingface-cache/hub"))
-    map_cached_entries(entries, root, cache_root)
+    print(f"bootstrap profile: {args.profile}")
+    print(f"detected RunPod HF cache repo: {configured_cache_repo(manifest)}")
+    print(f"cache root: {cache_root}")
+    map_cached_repository(root, cache_root, manifest)
+    map_cached_entries(entries, root, cache_root, manifest, "required")
+    map_cached_entries(optional_entries, root, cache_root, manifest, "optional")
     verify_hash = args.verify_sha256 or os.environ.get("LTX_VERIFY_MODEL_HASHES", "false").lower() == "true"
     missing = verify(entries, root, verify_hash=verify_hash)
     if missing and args.download and not args.verify_only:
