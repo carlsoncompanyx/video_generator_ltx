@@ -1,0 +1,32 @@
+name: Trigger RunPod release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release for pushed commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TARGET_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${TARGET_SHA:0:7}"
+          TAG="runpod-${SHORT_SHA}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to do."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --target "$TARGET_SHA" \
+            --title "$TAG" \
+            --notes "Automated RunPod build trigger for commit $TARGET_SHA"
