@@ -12,6 +12,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
     COMFY_LOG_LEVEL=INFO \
     COMFY_API_AVAILABLE_MAX_RETRIES=0
 
+# The native LTX VAE uses a Triton kernel that is JIT-compiled on first decode.
+# The CUDA base image does not include a host C/C++ toolchain, so provide the
+# compiler without changing the PyTorch, CUDA, or LTX runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 # Reuse the published 0.1.3 CUDA/PyTorch/ComfyUI layer. Only the official
 # custom nodes required by the control graphs are added here. BuildKit fetches
 # the exact pinned public commit archives without Git credentials.
@@ -30,7 +37,10 @@ RUN mkdir -p \
          -C /comfyui/custom_nodes/ComfyUI-Video-Depth-Anything \
     && rm -f /tmp/ltxvideo.tar.gz /tmp/vda.tar.gz
 
-RUN mkdir -p /tmp/ltx2-src     && tar -xzf /tmp/ltx2.tar.gz --strip-components=1 -C /tmp/ltx2-src     && pip install --no-cache-dir --no-deps /tmp/ltx2-src/packages/ltx-core /tmp/ltx2-src/packages/ltx-pipelines     && rm -rf /tmp/ltx2-src /tmp/ltx2.tar.gz
+RUN mkdir -p /tmp/ltx2-src \
+    && tar -xzf /tmp/ltx2.tar.gz --strip-components=1 -C /tmp/ltx2-src \
+    && pip install --no-cache-dir --no-deps /tmp/ltx2-src/packages/ltx-core /tmp/ltx2-src/packages/ltx-pipelines \
+    && rm -rf /tmp/ltx2-src /tmp/ltx2.tar.gz
 
 COPY requirements.txt /worker-requirements.txt
 
@@ -44,7 +54,6 @@ RUN pip install --no-cache-dir -r /comfyui/custom_nodes/ComfyUI-LTXVideo/require
 # Docker Desktop build workers do not have an NVIDIA driver.
 RUN cd /comfyui && python -c "import torch; import comfy; import folder_paths; print(torch.__version__)" \
     && cd /comfyui && python -c "import sys; import comfy.options as options; options.args_parsing=True; sys.argv.append('--cpu'); import importlib.util; path='/comfyui/custom_nodes/ComfyUI-LTXVideo'; spec=importlib.util.spec_from_file_location('custom_nodes.ComfyUI_LTXVideo', path + '/__init__.py', submodule_search_locations=[path]); module=importlib.util.module_from_spec(spec); sys.modules[spec.name]=module; spec.loader.exec_module(module); print('ltxvideo-runtime-import-ok')"
-
 
 # Import the pinned official LTX native packages without loading model weights.
 RUN python -c "from ltx_pipelines.ti2vid_two_stages_hq import TI2VidTwoStagesHQPipeline; from ltx_pipelines.utils.model_paths import ModelPaths; from ltx_core.loader import LoraPathStrengthAndSDOps; print('native-ltx-runtime-import-ok')"
