@@ -1276,15 +1276,36 @@ def preflight_result() -> dict:
             require_media_placeholders=False,
         )
         workflow_results.append({"mode": mode, "workflow": filename, "errors": errors})
+
     active_profile = os.environ.get("LTX_BOOTSTRAP_PROFILE", "ltx25_bf16_core")
     storage = model_storage_audit(active_profile)
+    required_role = f"{active_profile}:required"
+    required_missing = [
+        item["path"]
+        for item in storage["files"]
+        if any(role["role"] == required_role for role in item["roles"]) and not item["installed"]
+    ]
+    optional_missing = [path for path in storage["missing"] if path not in required_missing]
     native = native_t2v_preflight()
-    errors = [error for result in workflow_results for error in result["errors"]]
-    errors.extend(storage["missing"])
+
+    # T2V and I2V use the native full/dev pipeline. The checked-in ComfyUI
+    # graphs for dormant/optional modes remain useful diagnostics, but their
+    # optional model and widget requirements must not make the active native
+    # capability report FAIL.
+    diagnostics = {
+        "comfy_workflows": workflow_results,
+        "optional_model_files_missing": optional_missing,
+    }
+    errors = []
+    if not comfy_reachable():
+        errors.append(f"ComfyUI is not reachable at {COMFY_BASE}")
     if native["status"] != "PASS":
         errors.append(f"native_t2v preflight failed: {native.get('error', native)}")
+    if required_missing:
+        errors.extend(required_missing)
     if schema_error:
         errors.append(f"object_info unavailable: {schema_error}")
+
     return {
         "status": "PASS" if not errors else "FAIL",
         "comfyui_reachable": comfy_reachable(),
@@ -1293,16 +1314,19 @@ def preflight_result() -> dict:
         "native_t2v": native,
         "model_storage": storage,
         "errors": errors,
+        "diagnostics": diagnostics,
         "checks": [
             "required inputs",
             "dynamic references and output slots",
             "object_info enum/list selections",
             "manifest model filenames",
             "mapped model files on disk",
+            "active native T2V/I2V pipeline preflight",
             "native LTX package import",
             "native full/dev model resolution",
             "native distilled refinement LoRA resolution",
             "native T2V bypasses the ComfyUI distilled graph",
+            "dormant ComfyUI workflow diagnostics are non-blocking for native core modes",
         ],
     }
 
