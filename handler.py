@@ -148,13 +148,19 @@ class GpuMemorySampler:
 
 def error_result(exc: ContractError, normalized: dict | None = None) -> dict:
     LOG.error('LTX_HANDLER_FAILURE code=%s message=%s details=%s', exc.code, exc.message, exc.details)
-    result = {
+    payload = {
         "status": "FAILED",
         "error": {"code": exc.code, "message": exc.message, "details": exc.details},
     }
     if normalized is not None:
-        result["normalized"] = normalized
-    return result
+        payload["normalized"] = normalized
+    # Return a completed RunPod invocation with an explicit nested failure.
+    # RunPod otherwise converts a top-level FAILED return into a generic
+    # outer job result and hides the structured error from API callers.
+    return {
+        "status": "COMPLETED",
+        "output": payload,
+    }
 
 
 def as_input(job: dict) -> dict:
