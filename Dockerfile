@@ -17,7 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # the exact pinned public commit archives without Git credentials.
 ADD https://codeload.github.com/Lightricks/ComfyUI-LTXVideo/tar.gz/ac4d99839020b983e956a8ab67ec38aec1b6e65a /tmp/ltxvideo.tar.gz
 ADD https://codeload.github.com/yuvraj108c/ComfyUI-Video-Depth-Anything/tar.gz/a0db08e63d1ea571601c45cde4aaee0acdd0544d /tmp/vda.tar.gz
-ADD https://codeload.github.com/Lightricks/LTX-2/tar.gz/${LTX2_GIT_COMMIT} /tmp/ltx2.tar.gz
+ADD https://codeload.github.com/Lightricks/LTX-2/tar.gz/a95ab856bf29407b6b066ede0abe1846050db56c /tmp/ltx2.tar.gz
 
 RUN mkdir -p \
       /comfyui/custom_nodes/ComfyUI-LTXVideo \
