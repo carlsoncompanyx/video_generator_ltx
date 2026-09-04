@@ -166,12 +166,22 @@ def as_input(job: dict) -> dict:
             raise ContractError("INVALID_JSON", "input must be valid JSON") from exc
     if not isinstance(value, dict):
         raise ContractError("INVALID_INPUT", "input must be an object")
-    if value.get("action") == "text_to_video":
+    action = str(value.get("action", "")).lower()
+    if action in {"text_to_video", "image_to_video"}:
         value = {
             **value,
-            "mode": "t2v",
+            "mode": "i2v" if action == "image_to_video" else "t2v",
             "duration_seconds": value.get("duration", value.get("duration_seconds", 5)),
         }
+        if action == "image_to_video" and not (value.get("image_url") or value.get("image_base64")):
+            image = value.get("image")
+            if isinstance(image, str):
+                if image.startswith(("http://", "https://")):
+                    value["image_url"] = image
+                else:
+                    value["image_base64"] = image
+            elif image is not None:
+                raise ContractError("INVALID_MEDIA", "image must be an HTTPS URL or base64 image")
     return value
 
 def clamp_dimension(value: object, name: str) -> tuple[int, str | None]:
@@ -658,6 +668,7 @@ def _native_runtime_imports() -> dict:
         from ltx_core.model.video_vae import AUTO_TILING, get_video_chunks_number
         from ltx_pipelines.ti2vid_two_stages_hq import TI2VidTwoStagesHQPipeline
         from ltx_pipelines.utils.constants import DEFAULT_NEGATIVE_PROMPT, LTX_2_3_HQ_PARAMS, STAGE_2_DISTILLED_SIGMAS
+        from ltx_pipelines.utils.args import ImageConditioningInput
         from ltx_pipelines.utils.media_io import encode_video
         from ltx_pipelines.utils.model_paths import ModelPaths
         from ltx_pipelines.utils.types import OffloadMode
@@ -679,6 +690,7 @@ def _native_runtime_imports() -> dict:
         "offload_mode": OffloadMode,
         "hq_params": LTX_2_3_HQ_PARAMS,
         "stage_2_sigmas": STAGE_2_DISTILLED_SIGMAS,
+        "image_conditioning": ImageConditioningInput,
         "encode_video": encode_video,
         "default_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
         "upstream_commit": NATIVE_LTX2_COMMIT,
@@ -821,7 +833,7 @@ def native_t2v_preflight() -> dict:
         }
 
 
-def run_native_t2v(settings: dict, job_id: str) -> dict:
+def run_native_t2v(settings: dict, job_id: str, image_path: Path | None = None) -> dict:
     runtime = _native_runtime_imports()
     resolved, metadata = _native_resolve_models()
     offload_mode = _native_offload_mode(runtime)
@@ -853,6 +865,17 @@ def run_native_t2v(settings: dict, job_id: str) -> dict:
             settings["enhance_prompt"],
         )
         generation_started = time.perf_counter()
+        images = []
+        if image_path is not None:
+            if not image_path.is_file():
+                raise ContractError("MEDIA_NOT_FOUND", "prepared I2V image is missing")
+            images = [
+                runtime["image_conditioning"](
+                    path=str(image_path),
+                    frame_idx=0,
+                    strength=1.0,
+                )
+            ]
         result = pipeline(
             prompt=settings["prompt"],
             negative_prompt=negative_prompt,
@@ -863,7 +886,7 @@ def run_native_t2v(settings: dict, job_id: str) -> dict:
             num_inference_steps=params.num_inference_steps,
             video_guider_params=params.video_guider_params,
             audio_guider_params=params.audio_guider_params,
-            images=[],
+            images=images,
             num_frames=settings["frames"],
             vae_dtype=runtime["torch"].bfloat16,
             tiling_config=runtime["auto_tiling"],
@@ -919,7 +942,12 @@ def run_native_t2v(settings: dict, job_id: str) -> dict:
                 "distilled_lora_strength_stage_2": NATIVE_DISTILLED_LORA_STAGE_2,
                 "num_frames": int(result.num_frames),
                 "audio_encoded": bool(settings["generate_audio"]),
-                "image_conditionings": 0,
+                "image_conditionings": len(images),
+                "image_conditioning": (
+                    {"frame_idx": 0, "strength": 1.0, "source": "request_image"}
+                    if images
+                    else None
+                ),
                 "comfy_graph_submitted": False,
             },
             "timing": {
@@ -1508,33 +1536,45 @@ def handler(job: dict) -> dict:
             return preflight_result()
         settings = normalize_request(data)
 
-        # T2V uses the official native full/dev pipeline. It must not queue the
-        # stale distilled ComfyUI graph that remains registered for other modes.
-        if settings["mode"] == "t2v":
+        # Core T2V and I2V both use the official native full/dev pipeline.
+        # I2V passes the downloaded image as the native frame-0 conditioning
+        # input; it must not fall through to the stale ComfyUI graph.
+        if settings["mode"] in {"t2v", "i2v"}:
             native_settings = copy.deepcopy(settings)
-            native_settings.pop("input_keys", None)
-            native_result = run_native_t2v(native_settings, job_id)
-            publish_started = time.perf_counter()
-            output = publish_output(job_id, native_result["descriptor"], native_result["payload"])
-            finished = time.perf_counter()
-            timing = dict(native_result["timing"])
-            timing["output_publish_seconds"] = round(finished - publish_started, 3)
-            timing["handler_total_seconds"] = round(finished - started, 3)
-            timing["gpu_memory"] = native_result["gpu_memory"]
-            return {
-                "status": "COMPLETED",
-                "job_id": job_id,
-                "mode": "t2v",
-                "workflow": f"native:{NATIVE_PIPELINE_NAME}",
-                "model_profile": native_settings["model_profile"],
-                "normalized": native_settings,
-                "native": native_result["native"],
-                "timing": timing,
-                "output_size_bytes": len(native_result["payload"]),
-                "output": output,
-                "video": output,
-                "inference_ms": round(native_result["timing"]["native_pipeline_seconds"] * 1000),
-            }
+            keys = native_settings.pop("input_keys")
+            native_image_path: Path | None = None
+            native_media_files: list[str] = []
+            try:
+                if settings["mode"] == "i2v":
+                    image_source = keys["image_base64"] or keys["image_url"]
+                    image_name = write_media(image_source, "image", job_id)
+                    native_media_files.append(image_name)
+                    native_image_path = COMFY_INPUT_DIR / image_name
+                native_result = run_native_t2v(native_settings, job_id, native_image_path)
+                publish_started = time.perf_counter()
+                output = publish_output(job_id, native_result["descriptor"], native_result["payload"])
+                finished = time.perf_counter()
+                timing = dict(native_result["timing"])
+                timing["output_publish_seconds"] = round(finished - publish_started, 3)
+                timing["handler_total_seconds"] = round(finished - started, 3)
+                timing["gpu_memory"] = native_result["gpu_memory"]
+                return {
+                    "status": "COMPLETED",
+                    "job_id": job_id,
+                    "mode": native_settings["mode"],
+                    "workflow": f"native:{NATIVE_PIPELINE_NAME}",
+                    "model_profile": native_settings["model_profile"],
+                    "normalized": native_settings,
+                    "native": native_result["native"],
+                    "timing": timing,
+                    "output_size_bytes": len(native_result["payload"]),
+                    "output": output,
+                    "video": output,
+                    "inference_ms": round(native_result["timing"]["native_pipeline_seconds"] * 1000),
+                }
+            finally:
+                for filename in native_media_files:
+                    (COMFY_INPUT_DIR / filename).unlink(missing_ok=True)
 
         input_prep_started = time.perf_counter()
         media = {}
