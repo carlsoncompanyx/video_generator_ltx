@@ -167,6 +167,8 @@ def as_input(job: dict) -> dict:
     if not isinstance(value, dict):
         raise ContractError("INVALID_INPUT", "input must be an object")
     action = str(value.get("action", "")).lower()
+    if "action" in value and action not in {"text_to_video", "image_to_video", "health", "preflight"}:
+        raise ContractError("INVALID_ACTION", f"unsupported action: {action}")
     if action in {"text_to_video", "image_to_video"}:
         value = {
             **value,
