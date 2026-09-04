@@ -877,14 +877,18 @@ def run_native_t2v(settings: dict, job_id: str) -> dict:
         generation_finished = time.perf_counter()
         output_path = Path("/tmp") / f"ltx-native-{re.sub(r'[^A-Za-z0-9_.-]+', '-', job_id)}.mp4"
         encoding_started = time.perf_counter()
-        runtime["encode_video"](
-            video=result.video,
-            fps=settings["fps"],
-            audio=result.audio if settings["generate_audio"] else None,
-            output_path=str(output_path),
-            video_chunks_number=runtime["get_video_chunks_number"](result.num_frames, result.tiling_config),
-            color_space=None,
-        )
+        # PipelineOutput may contain lazy VAE decode iterators. Keep the
+        # encoder and iterator consumption inside inference mode so PyTorch
+        # does not treat inference tensors as autograd inputs.
+        with runtime["torch"].inference_mode():
+            runtime["encode_video"](
+                video=result.video,
+                fps=settings["fps"],
+                audio=result.audio if settings["generate_audio"] else None,
+                output_path=str(output_path),
+                video_chunks_number=runtime["get_video_chunks_number"](result.num_frames, result.tiling_config),
+                color_space=None,
+            )
         encoding_finished = time.perf_counter()
         if not output_path.is_file() or output_path.stat().st_size < 1024:
             raise ContractError("NATIVE_OUTPUT_MISSING", "native pipeline completed without a playable MP4")
