@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROFILE="${LTX_BOOTSTRAP_PROFILE:-ltx25_bf16_core}"
 BOOTSTRAP_ARGS=(--profile "${PROFILE}")
-if [[ "${MODEL_BOOTSTRAP_DOWNLOAD:-false}" == "true" ]]; then
+if [[ "${MODEL_BOOTSTRAP_DOWNLOAD:-false}" == "true" || "${LTX_PROMPT_ENHANCER_BOOTSTRAP:-false}" == "true" ]]; then
   BOOTSTRAP_ARGS+=(--download)
 fi
 if [[ -n "${LTX_BOOTSTRAP_LORAS:-}" ]]; then

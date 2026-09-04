@@ -54,6 +54,15 @@ def optional_entries_for(manifest: dict, profile: str | None = None) -> list[dic
     return list(selected.get("optional", []))
 
 
+def prompt_enhancer_entries_for(optional_entries: list[dict]) -> list[dict]:
+    """Return only the optional official Gemma 4 prompt-enhancer asset."""
+    return [
+        entry
+        for entry in optional_entries
+        if Path(entry.get("path", "")).name == "gemma4_e2b_it_bf16.safetensors"
+    ]
+
+
 def target_path(root: Path, entry: dict) -> Path:
     return root / entry["directory"] / Path(entry["path"]).name
 
@@ -323,6 +332,8 @@ def main() -> int:
     root.mkdir(parents=True, exist_ok=True)
     entries = entries_for(manifest, args.profile, args.lora)
     optional_entries = optional_entries_for(manifest, args.profile)
+    prompt_enhancer_bootstrap = os.environ.get("LTX_PROMPT_ENHANCER_BOOTSTRAP", "false").strip().lower() in {"1", "true", "yes", "on"}
+    prompt_enhancer_entries = prompt_enhancer_entries_for(optional_entries)
     cache_root = Path(os.environ.get("LTX25_CACHE_ROOT", "/runpod-volume/huggingface-cache/hub"))
     print(f"bootstrap profile: {args.profile}")
     print(f"detected RunPod HF cache repo: {configured_cache_repo(manifest)}")
@@ -335,10 +346,22 @@ def main() -> int:
     if missing and args.download and not args.verify_only:
         download(entries, root)
         missing = verify(entries, root, verify_hash=verify_hash)
+
+    prompt_enhancer_missing = verify(prompt_enhancer_entries, root, verify_hash=verify_hash)
+    if prompt_enhancer_bootstrap and prompt_enhancer_missing and args.download and not args.verify_only:
+        print("prompt enhancer: missing; downloading the optional official Gemma 4 enhancer")
+        download(prompt_enhancer_entries, root)
+        prompt_enhancer_missing = verify(prompt_enhancer_entries, root, verify_hash=verify_hash)
     if missing:
         print(json.dumps({"status": "missing", "model_root": str(root), "missing": missing}, indent=2))
         print("Set MODEL_BOOTSTRAP_DOWNLOAD=true with an accepted HF_TOKEN to download approved files.")
         return 2
+    if prompt_enhancer_bootstrap and prompt_enhancer_missing:
+        print(json.dumps({"status": "missing_prompt_enhancer", "model_root": str(root), "missing": prompt_enhancer_missing}, indent=2))
+        print("Prompt-enhancer bootstrap was requested but the optional official Gemma 4 file could not be mapped or downloaded.")
+        return 3
+    if prompt_enhancer_bootstrap:
+        print("prompt enhancer: ready filename=gemma4_e2b_it_bf16.safetensors")
     print(json.dumps({"status": "ready", "profile": args.profile, "model_root": str(root), "files": [e["path"] for e in entries]}, indent=2))
     return 0
 

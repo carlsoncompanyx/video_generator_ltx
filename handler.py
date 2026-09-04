@@ -874,6 +874,34 @@ def run_native_t2v(settings: dict, job_id: str, image_path: Path | None = None) 
         )
         generation_started = time.perf_counter()
         images = []
+        enhancement_capture: dict[str, str | None] = {"prompt": None}
+        enhancement_blocks = None
+        enhancement_original = None
+        if settings.get("enhance_prompt"):
+            import ltx_pipelines.utils.blocks as enhancement_blocks
+
+            enhancement_original = enhancement_blocks.generate_enhanced_prompt
+
+            def capture_enhanced_prompt(
+                text_encoder,
+                prompt,
+                image_path=None,
+                image_long_side=896,
+                seed=42,
+                static_cache=False,
+            ):
+                enhanced = enhancement_original(
+                    text_encoder,
+                    prompt,
+                    image_path=image_path,
+                    image_long_side=image_long_side,
+                    seed=seed,
+                    static_cache=static_cache,
+                )
+                enhancement_capture["prompt"] = enhanced
+                return enhanced
+
+            enhancement_blocks.generate_enhanced_prompt = capture_enhanced_prompt
         if image_path is not None:
             if not image_path.is_file():
                 raise ContractError("MEDIA_NOT_FOUND", "prepared I2V image is missing")
@@ -884,7 +912,8 @@ def run_native_t2v(settings: dict, job_id: str, image_path: Path | None = None) 
                     strength=1.0,
                 )
             ]
-        result = pipeline(
+        try:
+            result = pipeline(
             prompt=settings["prompt"],
             negative_prompt=negative_prompt,
             seed=settings["seed"],
@@ -905,7 +934,12 @@ def run_native_t2v(settings: dict, job_id: str, image_path: Path | None = None) 
             color_space=None,
             generated_keyframes=0,
         )
+        finally:
+            if enhancement_blocks is not None and enhancement_original is not None:
+                enhancement_blocks.generate_enhanced_prompt = enhancement_original
         generation_finished = time.perf_counter()
+        if enhancement_capture["prompt"] is not None:
+            LOG.info("native_t2v: enhanced_prompt=%s", enhancement_capture["prompt"])
         output_path = Path("/tmp") / f"ltx-native-{re.sub(r'[^A-Za-z0-9_.-]+', '-', job_id)}.mp4"
         encoding_started = time.perf_counter()
         # PipelineOutput may contain lazy VAE decode iterators. Keep the
@@ -942,6 +976,7 @@ def run_native_t2v(settings: dict, job_id: str, image_path: Path | None = None) 
                     "requested": bool(settings["enhance_prompt"]),
                     "used": bool(settings["enhance_prompt"]),
                     "available": metadata["prompt_enhancer_available"],
+                    "enhanced_prompt": enhancement_capture["prompt"],
                 },
                 "negative_prompt_source": "request" if settings["negative_prompt"] else "official_default",
                 "stage_1_steps": params.num_inference_steps,
@@ -1598,6 +1633,7 @@ def handler(job: dict) -> dict:
                     "model_profile": native_settings["model_profile"],
                     "normalized": native_settings,
                     "native": native_result["native"],
+                    "enhanced_prompt": native_result["native"].get("prompt_enhancement", {}).get("enhanced_prompt"),
                     "timing": timing,
                     "output_size_bytes": len(native_result["payload"]),
                     "output": output,
