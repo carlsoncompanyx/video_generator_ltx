@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # The CUDA base image does not include a host C/C++ toolchain, so provide the
 # compiler without changing the PyTorch, CUDA, or LTX runtime.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential \
+    && apt-get install -y --no-install-recommends build-essential python3.12-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Reuse the published 0.1.3 CUDA/PyTorch/ComfyUI layer. Only the official
