@@ -679,6 +679,7 @@ def _native_runtime_imports() -> dict:
         "offload_mode": OffloadMode,
         "hq_params": LTX_2_3_HQ_PARAMS,
         "stage_2_sigmas": STAGE_2_DISTILLED_SIGMAS,
+        "encode_video": encode_video,
         "default_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
         "upstream_commit": NATIVE_LTX2_COMMIT,
     }
