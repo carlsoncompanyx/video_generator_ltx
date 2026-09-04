@@ -71,7 +71,7 @@ MODEL_FILES = {
         "clip": "gemma4-12b-with-proj-ltx-2.5-bf16.safetensors",
     },
     "ltx25_bf16_core": {
-        "unet": "ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+        "unet": "ltx-2.5-22b-dev-transformer-bf16.safetensors",
         "clip": "gemma4-12b-with-proj-ltx-2.5-bf16.safetensors",
     },
 }
@@ -404,7 +404,7 @@ def normalize_request(data: dict) -> dict:
         "fps": fps,
         "duration_seconds": round((frames - 1) / fps, 4),
         "generate_audio": bool(data.get("generate_audio", True)),
-        "enhance_prompt": bool(data.get("enhance_prompt", True)),
+        "enhance_prompt": bool(data.get("enhance_prompt", False if mode in CORE_MODES else True)),
         "upscale": bool(data.get("upscale", True)),
         "model_profile": profile,
         "control_type": control_type if mode in CONTROL_MODES else None,
@@ -421,7 +421,7 @@ def normalize_request(data: dict) -> dict:
             "video_base64": data.get("video_base64"),
         },
         "adjustments": notes,
-        "steps": "8+3 distilled two-stage template" if mode == "union_control" else ("8 distilled motion-track template" if mode == "motion_track" else "8+3 distilled two-stage template"),
+        "steps": "15-step HQ res2s + 4-step distilled refinement" if mode == "t2v" else ("8 distilled motion-track template" if mode == "motion_track" else "8+3 distilled two-stage template"),
         "guidance": {"video_cfg": 1.0, "audio_cfg": 1.0},
     }
 
@@ -543,6 +543,394 @@ def normalize_control_image(input_name: str, settings: dict, job_id: str) -> str
     if not output_path.is_file() or output_path.stat().st_size < 1024:
         raise ContractError("MEDIA_PREPROCESS_FAILED", "normalized control image was not created")
     return output_name
+
+
+NATIVE_LTX2_COMMIT = "a95ab856bf29407b6b066ede0abe1846050db56c"
+NATIVE_PIPELINE_NAME = "TI2VidTwoStagesHQPipeline"
+NATIVE_DISTILLED_LORA_STAGE_1 = 0.25
+NATIVE_DISTILLED_LORA_STAGE_2 = 0.5
+_NATIVE_PIPELINE = None
+_NATIVE_PIPELINE_SIGNATURE: tuple[str, ...] | None = None
+_NATIVE_PIPELINE_LOCK = threading.Lock()
+
+
+def _native_model_root() -> Path:
+    return Path(os.environ.get("RUNPOD_NETWORK_VOLUME_PATH", "/runpod-volume")) / "models"
+
+
+def _native_file_record(path: Path, role: str) -> dict:
+    return {
+        "role": role,
+        "filename": path.name,
+        "path": str(path),
+        "bytes": path.stat().st_size,
+    }
+
+
+def _native_resolve_models() -> tuple[dict[str, Path], dict]:
+    manifest = json.loads(MODEL_MANIFEST_PATH.read_text(encoding="utf-8"))
+    profile_name = "ltx25_bf16_core"
+    profile = manifest.get("profiles", {}).get(profile_name)
+    if not isinstance(profile, dict):
+        raise ContractError("NATIVE_MODEL_MAPPING_MISSING", f"manifest profile is missing: {profile_name}")
+
+    root = _native_model_root()
+
+    def resolve_profile_file(filename: str) -> Path:
+        entries = list(profile.get("required", [])) + list(profile.get("optional", []))
+        entry = next((item for item in entries if Path(item.get("path", "")).name == filename), None)
+        if entry is None:
+            raise ContractError(
+                "NATIVE_MODEL_MAPPING_MISSING",
+                f"{filename} is not declared by {profile_name}",
+                {"profile": profile_name, "filename": filename},
+            )
+        path = root / entry["directory"] / Path(entry["path"]).name
+        if not path.is_file() or path.stat().st_size < 1024:
+            raise ContractError(
+                "NATIVE_MODEL_MISSING",
+                f"required native model is not mapped: {filename}",
+                {"role": filename, "path": str(path), "cache_repo": entry.get("cache_repo") or manifest.get("cache_repo")},
+            )
+        return path
+
+    resolved = {
+        "transformer": resolve_profile_file("ltx-2.5-22b-dev-transformer-bf16.safetensors"),
+        "text_encoder": resolve_profile_file("gemma4-12b-with-proj-ltx-2.5-bf16.safetensors"),
+        "video_vae": resolve_profile_file("ltx-2.5-video-vae-bf16.safetensors"),
+        "audio_vae": resolve_profile_file("ltx-2.5-audio-vae-bf16.safetensors"),
+        "spatial_upsampler": resolve_profile_file("ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"),
+        "root": root,
+    }
+
+    lora_entry = manifest.get("lora_repositories", {}).get("distilled_refinement")
+    required_loras = profile.get("required_loras", [])
+    if "distilled_refinement" not in required_loras or not isinstance(lora_entry, dict):
+        raise ContractError(
+            "NATIVE_MODEL_MAPPING_MISSING",
+            "the native distilled refinement LoRA is not declared as required",
+            {"profile": profile_name, "required_loras": required_loras},
+        )
+    lora_path = root / lora_entry["directory"] / Path(lora_entry["path"]).name
+    if not lora_path.is_file() or lora_path.stat().st_size < 1024:
+        raise ContractError(
+            "NATIVE_MODEL_MISSING",
+            f"required native refinement LoRA is not mapped: {lora_path.name}",
+            {
+                "role": "distilled_refinement",
+                "path": str(lora_path),
+                "cache_repo": lora_entry.get("cache_repo") or manifest.get("cache_repo"),
+            },
+        )
+    resolved["distilled_lora"] = lora_path
+
+    enhancer_path = None
+    for entry in profile.get("optional", []):
+        if Path(entry.get("path", "")).name == "gemma4_e2b_it_bf16.safetensors":
+            candidate = root / entry["directory"] / Path(entry["path"]).name
+            if candidate.is_file() and candidate.stat().st_size >= 1024:
+                enhancer_path = candidate
+            break
+    resolved["prompt_enhancer"] = enhancer_path
+
+    metadata_files = {
+        key: _native_file_record(path, key)
+        for key, path in resolved.items()
+        if isinstance(path, Path) and key not in {"root", "prompt_enhancer"}
+    }
+    metadata_files["distilled_refinement_lora"] = _native_file_record(lora_path, "distilled_refinement_lora")
+    if enhancer_path is not None:
+        metadata_files["prompt_enhancer"] = _native_file_record(enhancer_path, "prompt_enhancer")
+    metadata = {
+        "profile": profile_name,
+        "cache_repo": manifest.get("cache_repo"),
+        "files": metadata_files,
+        "prompt_enhancer_available": enhancer_path is not None,
+    }
+    return resolved, metadata
+
+
+def _native_runtime_imports() -> dict:
+    try:
+        import torch
+        from ltx_core.components.guiders import MultiModalGuiderParams
+        from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
+        from ltx_core.model.video_vae import AUTO_TILING, get_video_chunks_number
+        from ltx_pipelines.ti2vid_two_stages_hq import TI2VidTwoStagesHQPipeline
+        from ltx_pipelines.utils.constants import DEFAULT_NEGATIVE_PROMPT, LTX_2_3_HQ_PARAMS, STAGE_2_DISTILLED_SIGMAS
+        from ltx_pipelines.utils.media_io import encode_video
+        from ltx_pipelines.utils.model_paths import ModelPaths
+        from ltx_pipelines.utils.types import OffloadMode
+    except Exception as exc:
+        raise ContractError(
+            "NATIVE_RUNTIME_UNAVAILABLE",
+            "the official LTX native pipeline could not be imported",
+            {"exception": type(exc).__name__, "message": str(exc)[:1000]},
+        ) from exc
+    return {
+        "torch": torch,
+        "pipeline": TI2VidTwoStagesHQPipeline,
+        "guider_params": MultiModalGuiderParams,
+        "lora": LoraPathStrengthAndSDOps,
+        "lora_sd_ops": LTXV_LORA_COMFY_RENAMING_MAP,
+        "auto_tiling": AUTO_TILING,
+        "get_video_chunks_number": get_video_chunks_number,
+        "model_paths": ModelPaths,
+        "offload_mode": OffloadMode,
+        "hq_params": LTX_2_3_HQ_PARAMS,
+        "stage_2_sigmas": STAGE_2_DISTILLED_SIGMAS,
+        "default_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
+        "upstream_commit": NATIVE_LTX2_COMMIT,
+    }
+
+
+def _native_offload_mode(runtime: dict):
+    raw = os.environ.get("LTX_NATIVE_OFFLOAD_MODE", "cpu").strip().lower()
+    try:
+        return runtime["offload_mode"](raw)
+    except ValueError as exc:
+        raise ContractError(
+            "NATIVE_OFFLOAD_INVALID",
+            f"unsupported native offload mode: {raw}",
+            {"supported": [item.value for item in runtime["offload_mode"]]},
+        ) from exc
+
+
+def _native_pipeline_for(settings: dict, resolved: dict[str, Path], runtime: dict, offload_mode):
+    global _NATIVE_PIPELINE, _NATIVE_PIPELINE_SIGNATURE
+    enhancer_path = resolved.get("prompt_enhancer") if settings.get("enhance_prompt") else None
+    if settings.get("enhance_prompt") and enhancer_path is None:
+        raise ContractError(
+            "NATIVE_PROMPT_ENHANCER_UNAVAILABLE",
+            "prompt enhancement was requested but gemma4_e2b_it_bf16.safetensors is not mapped",
+            {"acceptance_default": False, "capability": "available when the optional E2B model is present"},
+        )
+    external_loras = []
+    for item in settings.get("loras", []):
+        filename = item.get("filename")
+        path = resolved["root"] / "loras" / filename
+        if not path.is_file() or path.stat().st_size < 1024:
+            raise ContractError(
+                "NATIVE_LORA_MISSING",
+                f"approved LoRA is not mapped for native execution: {filename}",
+                {"path": str(path), "logical_id": item.get("id")},
+            )
+        external_loras.append(runtime["lora"](str(path), float(item["strength"]), runtime["lora_sd_ops"]))
+    signature = tuple(
+        [
+            str(resolved["transformer"]),
+            str(resolved["text_encoder"]),
+            str(resolved["video_vae"]),
+            str(resolved["audio_vae"]),
+            str(resolved["spatial_upsampler"]),
+            str(resolved["distilled_lora"]),
+            str(enhancer_path or ""),
+            offload_mode.value,
+            *[f"{item.get('id')}:{item.get('strength')}" for item in settings.get("loras", [])],
+        ]
+    )
+    with _NATIVE_PIPELINE_LOCK:
+        if _NATIVE_PIPELINE is not None and _NATIVE_PIPELINE_SIGNATURE == signature:
+            return _NATIVE_PIPELINE
+        if _NATIVE_PIPELINE is not None:
+            LOG.info("native_t2v: replacing cached pipeline because the model/offload signature changed")
+            del _NATIVE_PIPELINE
+            _NATIVE_PIPELINE = None
+            _NATIVE_PIPELINE_SIGNATURE = None
+            try:
+                import gc
+                gc.collect()
+                runtime["torch"].cuda.empty_cache()
+            except Exception:
+                LOG.debug("native_t2v: cached pipeline cleanup was incomplete", exc_info=True)
+        model_paths = runtime["model_paths"].from_split(
+            transformer_path=str(resolved["transformer"]),
+            text_encoder_path=str(resolved["text_encoder"]),
+            video_vae_path=str(resolved["video_vae"]),
+            audio_vae_path=str(resolved["audio_vae"]),
+        )
+        refinement_lora = runtime["lora"](
+            str(resolved["distilled_lora"]),
+            1.0,
+            runtime["lora_sd_ops"],
+        )
+        LOG.info(
+            "native_t2v: constructing %s with dev transformer=%s primary_gemma=%s refinement_lora=%s offload=%s external_loras=%d",
+            NATIVE_PIPELINE_NAME,
+            resolved["transformer"].name,
+            resolved["text_encoder"].name,
+            resolved["distilled_lora"].name,
+            offload_mode.value,
+            len(external_loras),
+        )
+        _NATIVE_PIPELINE = runtime["pipeline"](
+            model_paths=model_paths,
+            distilled_lora=[refinement_lora],
+            distilled_lora_strength_stage_1=NATIVE_DISTILLED_LORA_STAGE_1,
+            distilled_lora_strength_stage_2=NATIVE_DISTILLED_LORA_STAGE_2,
+            spatial_upsampler_path=str(resolved["spatial_upsampler"]),
+            loras=tuple(external_loras),
+            device=runtime["torch"].device("cuda"),
+            offload_mode=offload_mode,
+            prompt_enhancer_gemma_root=str(enhancer_path) if enhancer_path is not None else None,
+        )
+        _NATIVE_PIPELINE_SIGNATURE = signature
+        return _NATIVE_PIPELINE
+
+
+def native_t2v_preflight() -> dict:
+    try:
+        runtime = _native_runtime_imports()
+        resolved, metadata = _native_resolve_models()
+        offload_mode = _native_offload_mode(runtime)
+        return {
+            "status": "PASS",
+            "pipeline": NATIVE_PIPELINE_NAME,
+            "upstream_commit": NATIVE_LTX2_COMMIT,
+            "model_profile": metadata["profile"],
+            "resolved_files": metadata["files"],
+            "prompt_enhancer": {
+                "available": metadata["prompt_enhancer_available"],
+                "required_for_acceptance": False,
+                "default_enabled": False,
+            },
+            "offload_mode": offload_mode.value,
+            "cuda_available": bool(runtime["torch"].cuda.is_available()),
+            "frame_rule": "8*k+1",
+            "stage_1_steps": runtime["hq_params"].num_inference_steps,
+            "stage_2_sigma_values": [float(value) for value in runtime["stage_2_sigmas"].tolist()],
+            "distilled_lora_strength_stage_1": NATIVE_DISTILLED_LORA_STAGE_1,
+            "distilled_lora_strength_stage_2": NATIVE_DISTILLED_LORA_STAGE_2,
+            "old_comfy_workflow_used_for_t2v": False,
+        }
+    except ContractError as exc:
+        return {
+            "status": "FAIL",
+            "error": {"code": exc.code, "message": exc.message, "details": exc.details},
+            "pipeline": NATIVE_PIPELINE_NAME,
+            "upstream_commit": NATIVE_LTX2_COMMIT,
+        }
+    except Exception as exc:
+        LOG.exception("native_t2v preflight failed")
+        return {
+            "status": "FAIL",
+            "error": {"code": "NATIVE_PREFLIGHT_FAILED", "message": str(exc)[:1000]},
+            "pipeline": NATIVE_PIPELINE_NAME,
+            "upstream_commit": NATIVE_LTX2_COMMIT,
+        }
+
+
+def run_native_t2v(settings: dict, job_id: str) -> dict:
+    runtime = _native_runtime_imports()
+    resolved, metadata = _native_resolve_models()
+    offload_mode = _native_offload_mode(runtime)
+    if settings.get("enhance_prompt") and resolved.get("prompt_enhancer") is None:
+        raise ContractError(
+            "NATIVE_PROMPT_ENHANCER_UNAVAILABLE",
+            "prompt enhancement was requested but gemma4_e2b_it_bf16.safetensors is not mapped",
+            {"acceptance_default": False},
+        )
+    if not runtime["torch"].cuda.is_available():
+        raise ContractError("NATIVE_CUDA_REQUIRED", "native LTX inference requires CUDA")
+    sampler = GpuMemorySampler()
+    sampler.start()
+    output_path: Path | None = None
+    response: dict | None = None
+    native_started = time.perf_counter()
+    try:
+        pipeline = _native_pipeline_for(settings, resolved, runtime, offload_mode)
+        params = runtime["hq_params"]
+        negative_prompt = settings["negative_prompt"] or runtime["default_negative_prompt"]
+        LOG.info(
+            "native_t2v: starting official HQ generation profile=%s frames=%d size=%dx%d fps=%d audio=%s enhance=%s",
+            metadata["profile"],
+            settings["frames"],
+            settings["width"],
+            settings["height"],
+            settings["fps"],
+            settings["generate_audio"],
+            settings["enhance_prompt"],
+        )
+        generation_started = time.perf_counter()
+        result = pipeline(
+            prompt=settings["prompt"],
+            negative_prompt=negative_prompt,
+            seed=settings["seed"],
+            height=settings["height"],
+            width=settings["width"],
+            frame_rate=settings["fps"],
+            num_inference_steps=params.num_inference_steps,
+            video_guider_params=params.video_guider_params,
+            audio_guider_params=params.audio_guider_params,
+            images=[],
+            num_frames=settings["frames"],
+            vae_dtype=runtime["torch"].bfloat16,
+            tiling_config=runtime["auto_tiling"],
+            enhance_prompt=bool(settings["enhance_prompt"]),
+            enhance_static_cache=False,
+            max_batch_size=1,
+            stage_2_sigmas=runtime["stage_2_sigmas"],
+            color_space=None,
+            generated_keyframes=0,
+        )
+        generation_finished = time.perf_counter()
+        output_path = Path("/tmp") / f"ltx-native-{re.sub(r'[^A-Za-z0-9_.-]+', '-', job_id)}.mp4"
+        encoding_started = time.perf_counter()
+        runtime["encode_video"](
+            video=result.video,
+            fps=settings["fps"],
+            audio=result.audio if settings["generate_audio"] else None,
+            output_path=str(output_path),
+            video_chunks_number=runtime["get_video_chunks_number"](result.num_frames, result.tiling_config),
+            color_space=None,
+        )
+        encoding_finished = time.perf_counter()
+        if not output_path.is_file() or output_path.stat().st_size < 1024:
+            raise ContractError("NATIVE_OUTPUT_MISSING", "native pipeline completed without a playable MP4")
+        payload = output_path.read_bytes()
+        response = {
+            "payload": payload,
+            "descriptor": {
+                "filename": output_path.name,
+                "subfolder": "",
+                "type": "output",
+                "kind": "videos",
+            },
+            "native": {
+                "pipeline": NATIVE_PIPELINE_NAME,
+                "upstream_commit": NATIVE_LTX2_COMMIT,
+                "model_profile": metadata["profile"],
+                "resolved_files": metadata["files"],
+                "offload_mode": offload_mode.value,
+                "prompt_enhancement": {
+                    "requested": bool(settings["enhance_prompt"]),
+                    "used": bool(settings["enhance_prompt"]),
+                    "available": metadata["prompt_enhancer_available"],
+                },
+                "negative_prompt_source": "request" if settings["negative_prompt"] else "official_default",
+                "stage_1_steps": params.num_inference_steps,
+                "stage_2_sigma_values": [float(value) for value in runtime["stage_2_sigmas"].tolist()],
+                "distilled_lora_strength_stage_1": NATIVE_DISTILLED_LORA_STAGE_1,
+                "distilled_lora_strength_stage_2": NATIVE_DISTILLED_LORA_STAGE_2,
+                "num_frames": int(result.num_frames),
+                "audio_encoded": bool(settings["generate_audio"]),
+                "image_conditionings": 0,
+                "comfy_graph_submitted": False,
+            },
+            "timing": {
+                "native_pipeline_seconds": round(generation_finished - generation_started, 3),
+                "native_encode_seconds": round(encoding_finished - encoding_started, 3),
+                "native_total_seconds": round(encoding_finished - native_started, 3),
+            },
+        }
+        return response
+    finally:
+        gpu_memory = sampler.stop()
+        if response is not None:
+            response["gpu_memory"] = gpu_memory
+        if output_path is not None:
+            output_path.unlink(missing_ok=True)
+
 
 def load_workflow(mode: str) -> dict:
     path = WORKFLOW_DIR / WORKFLOWS[mode]
@@ -849,8 +1237,11 @@ def preflight_result() -> dict:
         workflow_results.append({"mode": mode, "workflow": filename, "errors": errors})
     active_profile = os.environ.get("LTX_BOOTSTRAP_PROFILE", "ltx25_bf16_core")
     storage = model_storage_audit(active_profile)
+    native = native_t2v_preflight()
     errors = [error for result in workflow_results for error in result["errors"]]
     errors.extend(storage["missing"])
+    if native["status"] != "PASS":
+        errors.append(f"native_t2v preflight failed: {native.get('error', native)}")
     if schema_error:
         errors.append(f"object_info unavailable: {schema_error}")
     return {
@@ -858,6 +1249,7 @@ def preflight_result() -> dict:
         "comfyui_reachable": comfy_reachable(),
         "object_info": {"available": schema is not None, "error": schema_error},
         "workflows": workflow_results,
+        "native_t2v": native,
         "model_storage": storage,
         "errors": errors,
         "checks": [
@@ -866,8 +1258,13 @@ def preflight_result() -> dict:
             "object_info enum/list selections",
             "manifest model filenames",
             "mapped model files on disk",
+            "native LTX package import",
+            "native full/dev model resolution",
+            "native distilled refinement LoRA resolution",
+            "native T2V bypasses the ComfyUI distilled graph",
         ],
     }
+
 
 def gpu_info() -> dict:
     try:
@@ -995,6 +1392,7 @@ def health_result() -> dict:
         "pixel_upscale": "registered_not_validated",
         "huggingface_access": hf_access_probe(),
         "model_storage": model_storage_audit(),
+        "native_t2v": native_t2v_preflight(),
     }
 
 
@@ -1104,6 +1502,34 @@ def handler(job: dict) -> dict:
         if str(data.get("mode", "")).lower() == "preflight" or data.get("action") == "preflight":
             return preflight_result()
         settings = normalize_request(data)
+
+        # T2V uses the official native full/dev pipeline. It must not queue the
+        # stale distilled ComfyUI graph that remains registered for other modes.
+        if settings["mode"] == "t2v":
+            native_settings = copy.deepcopy(settings)
+            native_settings.pop("input_keys", None)
+            native_result = run_native_t2v(native_settings, job_id)
+            publish_started = time.perf_counter()
+            output = publish_output(job_id, native_result["descriptor"], native_result["payload"])
+            finished = time.perf_counter()
+            timing = dict(native_result["timing"])
+            timing["output_publish_seconds"] = round(finished - publish_started, 3)
+            timing["handler_total_seconds"] = round(finished - started, 3)
+            timing["gpu_memory"] = native_result["gpu_memory"]
+            return {
+                "status": "COMPLETED",
+                "job_id": job_id,
+                "mode": "t2v",
+                "workflow": f"native:{NATIVE_PIPELINE_NAME}",
+                "model_profile": native_settings["model_profile"],
+                "normalized": native_settings,
+                "native": native_result["native"],
+                "timing": timing,
+                "output_size_bytes": len(native_result["payload"]),
+                "output": output,
+                "video": output,
+                "inference_ms": round(native_result["timing"]["native_pipeline_seconds"] * 1000),
+            }
 
         input_prep_started = time.perf_counter()
         media = {}

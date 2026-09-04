@@ -81,8 +81,7 @@ class LtxContractTests(unittest.TestCase):
         self.assertEqual(len(save_nodes), 1)
         self.assertIn("video", save_nodes[0]["inputs"])
 
-    def test_t2v_official_graph_preserves_native_prompt_enhancement(self):
-        workflow = json.loads((ROOT / "workflows" / "ltx25_t2v.json").read_text())
+    def test_t2v_selects_native_full_dev_profile(self):
         settings = handler.normalize_request({
             "action": "text_to_video",
             "prompt": "test",
@@ -94,21 +93,21 @@ class LtxContractTests(unittest.TestCase):
             "generate_audio": True,
         })
         self.assertEqual(settings["model_profile"], "ltx25_bf16_core")
-        patched = handler.patch_workflow(workflow, settings, {}, "static-t2v")
+        self.assertEqual(settings["frames"], 49)
+        self.assertFalse(settings["enhance_prompt"])
         self.assertEqual(
-            next(node for node in patched.values() if node["class_type"] == "UNETLoader")["inputs"]["unet_name"],
-            "ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+            handler.MODEL_FILES["ltx25_bf16_core"]["unet"],
+            "ltx-2.5-22b-dev-transformer-bf16.safetensors",
         )
-        clips = [node["inputs"]["clip_name"] for node in patched.values() if node["class_type"] == "CLIPLoader"]
-        self.assertIn("gemma4-12b-with-proj-ltx-2.5-bf16.safetensors", clips)
-        self.assertIn("gemma4_e2b_it_bf16.safetensors", clips)
-        for node in patched.values():
-            if node["class_type"] == "GemmaAPITextEncode":
-                self.assertEqual(node["inputs"]["ckpt_name"], "ltx-2.5-22b-distilled-transformer-bf16.safetensors")
-        latent = next(node for node in patched.values() if node["class_type"] == "EmptyLTXVLatentVideo")
-        self.assertEqual((latent["inputs"]["width"], latent["inputs"]["height"]), (704, 1280))
-        self.assertEqual(latent["inputs"]["length"], 49)
-        self.assertTrue(any(node["class_type"] == "SaveVideo" for node in patched.values()))
+        self.assertEqual(settings["steps"], "15-step HQ res2s + 4-step distilled refinement")
+
+    def test_native_t2v_preflight_is_explicitly_separate_from_comfy_graph(self):
+        self.assertEqual(handler.NATIVE_PIPELINE_NAME, "TI2VidTwoStagesHQPipeline")
+        self.assertEqual(handler.NATIVE_LTX2_COMMIT, "a95ab856bf29407b6b066ede0abe1846050db56c")
+        self.assertEqual(handler.NATIVE_DISTILLED_LORA_STAGE_1, 0.25)
+        self.assertEqual(handler.NATIVE_DISTILLED_LORA_STAGE_2, 0.5)
+
+
     def test_union_graph_is_depth_only_and_patched_to_bf16(self):
         workflow = json.loads((ROOT / "workflows" / "ltx25_union_control.json").read_text())
         settings = handler.normalize_request({
